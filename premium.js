@@ -1,12 +1,12 @@
 (function () {
     'use strict';
 
-    // 1. Примусове повідомлення про старт (щоб ми бачили, що файл живий)
-    console.log('Premium Plugin: Started');
-    if(window.Lampa) Lampa.Noty.show('🚀 Premium Script Loaded (Skaz ver)');
+    // Повідомлення про запуск
+    if (window.Lampa) Lampa.Noty.show('🛠 Premium Script V3: Start');
 
-    function PremiumSkaz() {
-        // --- Логіка фільтрації (та сама) ---
+    function PremiumHunter() {
+        
+        // --- 1. Логіка фільтрації (стандартна) ---
         function filterContent(items) {
             var result = { '4k': [], '1080p': [], '720p': [] };
             items.forEach(function(item) {
@@ -26,7 +26,7 @@
             return result;
         }
 
-        // --- Логіка відображення меню (та сама) ---
+        // --- 2. Меню (стандартне) ---
         function showPremiumMenu(movie, data) {
             var html = $(`<div class="premium-ui" style="padding: 20px;"><div style="font-size: 1.4em; color: #ffd700; font-weight: bold; margin-bottom: 20px;">${movie.title}</div><div class="premium-body"></div></div>`);
             
@@ -49,63 +49,71 @@
             Lampa.Modal.open({ title: '', html: html, size: 'medium', select: html.find('.selector').first(), mask: true });
         }
 
-        // --- АГРЕСИВНА ВСТАВКА КНОПКИ ---
-        function injectButton() {
-            // Шукаємо відкриту сторінку фільму (активну)
+        // --- 3. ПОШУК КНОПОК (Агресивний метод) ---
+        function huntForPlace() {
+            // Перевіряємо, чи ми взагалі на сторінці фільму
             var active = Lampa.Activity.active();
-            if (!active || !active.activity || !active.component) return;
-            
-            // Перевіряємо, чи це фільм/серіал (компонент full)
-            if (active.component !== 'full') return;
+            if (!active || !active.component || active.component !== 'full') return;
 
-            // Шукаємо панель кнопок. У модах Skaz класи можуть бути інші, тому шукаємо декілька варіантів
-            var render = active.activity.render();
-            var buttons_container = render.find('.full-start__buttons, .full-tools__buttons, .view--torrent').first();
-            
-            // Якщо панель не знайдена - виходимо
-            if (buttons_container.length === 0) return;
+            // Якщо кнопка вже є - стоп
+            if ($('.premium-hunter-btn').length > 0) return;
 
-            // Якщо наша кнопка вже там є - виходимо
-            if (buttons_container.find('.view--premium-skaz').length > 0) return;
+            console.log('Premium Hunter: Looking for container...');
 
-            console.log('Injecting Button...');
+            // Список місць, де можуть бути кнопки у Skaz/FMX/Mods
+            var places = [
+                '.full-start__buttons',   // Стандарт
+                '.full-tools__buttons',   // FMX / Skaz
+                '.view--torrent',         // Старі версії
+                '.full-start .buttons',   // Варіант модифікацій
+                '.full-line .full-line__body' // Якщо кнопок нема, пхнемо в лінію опису
+            ];
 
-            // Створюємо кнопку
-            var btn = $(`<div class="view--premium-skaz button selector button--shape-rounded button--height-large" style="background: #FFD700; color: #000; font-weight: 900; border: 2px solid #fff; margin-right: 10px;">
-                PREMIUM
-            </div>`);
+            var container = null;
 
-            // Логіка кліку
-            btn.on('hover:enter', function () {
-                var movie_data = active.card; // Отримуємо дані фільму з активної картки
+            // Перебираємо всі можливі місця
+            for (var i = 0; i < places.length; i++) {
+                var found = $(places[i]);
+                if (found.length > 0) {
+                    container = found.first();
+                    break;
+                }
+            }
+
+            // Якщо знайшли місце - вставляємо!
+            if (container) {
+                var btn = $(`<div class="premium-hunter-btn button selector button--shape-rounded button--height-large" style="background: #FFD700; color: #000; font-weight: 900; border: 2px solid #fff; margin-right: 15px;">
+                    💎 PREMIUM
+                </div>`);
+
+                btn.on('hover:enter', function () {
+                    // Логіка запуску
+                    var parser_url = Lampa.Storage.get('parser_website_url'); 
+                    if (!parser_url) parser_url = 'http://176.9.117.135/api/v1'; // Запасний
+                    
+                    Lampa.Loading.start();
+                    var query = encodeURIComponent(active.card.title);
+                    
+                    if(parser_url.indexOf('api/v1') == -1) parser_url = parser_url.replace(/\/$/, "") + '/api/v1';
+                    
+                    Lampa.Network.silent(parser_url + '/search?query=' + query, function(json) {
+                        Lampa.Loading.stop();
+                        if (json && json.length) showPremiumMenu(active.card, filterContent(json));
+                        else Lampa.Noty.show('Пусто (перевір парсер)');
+                    }, function() { Lampa.Loading.stop(); Lampa.Noty.show('Помилка мережі'); });
+                });
+
+                // Вставляємо кнопку на початок
+                container.prepend(btn);
                 
-                var parser_url = Lampa.Storage.get('parser_website_url');
-                var use_parser = Lampa.Storage.get('parser_use');
-                if (!use_parser || !parser_url) parser_url = 'http://176.9.117.135/api/v1'; // Fallback
-                
-                Lampa.Loading.start();
-                var query = encodeURIComponent(movie_data.title);
-                parser_url = parser_url.replace(/\/$/, ""); 
-                if(parser_url.indexOf('/api/v1') == -1) parser_url += '/api/v1';
-                
-                Lampa.Network.silent(parser_url + '/search?query=' + query, function(json) {
-                    Lampa.Loading.stop();
-                    if (json && Array.isArray(json) && json.length > 0) showPremiumMenu(movie_data, filterContent(json));
-                    else Lampa.Noty.show('Пусто :(');
-                }, function() { Lampa.Loading.stop(); Lampa.Noty.show('Помилка мережі'); });
-            });
-
-            // Вставляємо на початок
-            if(buttons_container.find('.view--torrent').length) {
-                buttons_container.find('.view--torrent').before(btn);
-            } else {
-                buttons_container.prepend(btn);
+                // Сповіщення, що ми перемогли
+                Lampa.Noty.show('✅ Кнопка встановлена!');
             }
         }
 
-        // Запускаємо перевірку кожну секунду (це найнадійніший метод для модів)
-        setInterval(injectButton, 1000);
+        // Запускаємо перевірку кожні 2 секунди вічно (щоб піймати момент)
+        setInterval(huntForPlace, 2000);
     }
 
-    if (window.Lampa) PremiumSkaz();
+    if (window.Lampa) PremiumHunter();
 })();
