@@ -1,10 +1,10 @@
 (function () {
     'use strict';
 
-    // Повідомлення, щоб ти бачив, що файл завантажився
-    if(window.Lampa) Lampa.Noty.show('✅ Premium Mod: Active');
+    // Повідомлення на екран відразу при завантаженні
+    if(window.Lampa) Lampa.Noty.show('🚧 Debug Mode: Active');
 
-    function PremiumUniversal() {
+    function PremiumDebug() {
         
         // --- 1. Логіка (Та сама) ---
         function filterContent(items) {
@@ -47,48 +47,44 @@
             Lampa.Modal.open({ title: '', html: html, size: 'medium', select: html.find('.selector').first(), mask: true });
         }
 
-        // --- 2. ПОШУК (БРУТФОРС) ---
-        function bruteForceInsert() {
+        // --- 2. ЯДЕРНА ВСТАВКА (FLOATING BUTTON) ---
+        function addFloatingButton() {
+            // Перевіряємо, чи ми у фільмі
             var active = Lampa.Activity.active();
-            if (!active || !active.component || active.component !== 'full') return;
-            
-            // Якщо кнопка вже є - стоп
-            if ($('.premium-btn-universal').length > 0) return;
-
-            // Хитрість: Шукаємо кнопку, яка вже точно є на екрані (MODS або Showy або Play)
-            // Ми шукаємо будь-який елемент з класом .button всередині активного вікна
-            var any_existing_button = $('.full-start .button, .full-tools .button, .view--showy, .selector.button').first();
-            
-            // Отримуємо "батька" цієї кнопки (контейнер, де вони всі лежать)
-            var container = any_existing_button.parent();
-
-            if (container.length > 0) {
-                // Створюємо нашу кнопку (Червона, щоб ти точно її помітив)
-                var btn = $('<div class="premium-btn-universal button selector button--shape-rounded button--height-large" style="background: #ff0000; color: #fff; font-weight: 900; border: 2px solid #fff; margin-right: 15px; box-shadow: 0 0 15px rgba(255,0,0,0.5);">💎 PREMIUM</div>');
-
-                btn.on('hover:enter', function () {
-                    var parser_url = Lampa.Storage.get('parser_website_url'); 
-                    if (!parser_url) parser_url = 'http://176.9.117.135/api/v1';
-                    Lampa.Loading.start();
-                    var query = encodeURIComponent(active.card.title);
-                    if(parser_url.indexOf('api/v1') === -1) parser_url = parser_url.replace(/\/$/, "") + '/api/v1';
-                    
-                    Lampa.Network.silent(parser_url + '/search?query=' + query, function(json) {
-                        Lampa.Loading.stop();
-                        if (json && json.length) showPremiumMenu(active.card, filterContent(json));
-                        else Lampa.Noty.show('Пусто');
-                    }, function() { Lampa.Loading.stop(); Lampa.Noty.show('Помилка мережі'); });
-                });
-
-                // Вставляємо на початок контейнера
-                container.prepend(btn);
-                Lampa.Noty.show('Кнопка вставлена!');
+            if (!active || !active.component || active.component !== 'full') {
+                // Якщо ми не у фільмі - видаляємо кнопку
+                $('.premium-float').remove();
+                return;
             }
+            
+            // Якщо кнопка вже є - виходимо
+            if ($('.premium-float').length > 0) return;
+
+            // Створюємо кнопку, яка висить ПОВЕРХ усього
+            var btn = $('<div class="premium-float selector" style="position: fixed; z-index: 9999; top: 50px; left: 50px; background: red; color: white; padding: 20px; font-weight: bold; border-radius: 10px; border: 3px solid white; box-shadow: 0 0 20px black;">TEST PREMIUM</div>');
+
+            btn.on('hover:enter', function () {
+                var parser_url = Lampa.Storage.get('parser_website_url'); 
+                if (!parser_url) parser_url = 'http://176.9.117.135/api/v1';
+                Lampa.Loading.start();
+                var query = encodeURIComponent(active.card.title);
+                if(parser_url.indexOf('api/v1') === -1) parser_url = parser_url.replace(/\/$/, "") + '/api/v1';
+                
+                Lampa.Network.silent(parser_url + '/search?query=' + query, function(json) {
+                    Lampa.Loading.stop();
+                    if (json && json.length) showPremiumMenu(active.card, filterContent(json));
+                    else Lampa.Noty.show('Пусто');
+                }, function() { Lampa.Loading.stop(); Lampa.Noty.show('Помилка мережі'); });
+            });
+
+            // Вставляємо прямо в тіло сторінки (ігноруємо скіни)
+            $('body').append(btn);
+            Lampa.Noty.show('Кнопка створена (Floating)');
         }
 
-        // Довбаємо кожну секунду
-        setInterval(bruteForceInsert, 1000);
+        // Перевіряємо кожну секунду
+        setInterval(addFloatingButton, 1000);
     }
 
-    if (window.Lampa) PremiumUniversal();
+    if (window.Lampa) PremiumDebug();
 })();
