@@ -1,56 +1,50 @@
 (function () {
     'use strict';
 
-    function initPremium() {
-        console.log('Premium Plugin: Initialized');
+    // Функція, яка спрацює 100%, якщо файл завантажився
+    function startDiagnostic() {
+        console.log('Premium Plugin: Start Diagnostic');
+        
+        // Виводимо повідомлення в самій Лампі
+        setTimeout(function() {
+            if (window.Lampa && Lampa.Noty) {
+                Lampa.Noty.show('Premium Плагін підключено!');
+            } else {
+                alert('Плагін завантажився, але API Lampa не знайдено');
+            }
+        }, 2000);
 
-        // Таймер, який постійно перевіряє, чи ми в картці фільму
+        // Спроба знайти будь-яке місце для кнопки
         setInterval(function() {
-            // Шукаємо блок з кнопками
-            var container = $('.full-start__buttons');
+            // Перевіряємо всі можливі варіанти назв контейнерів у різних версіях
+            var selectors = [
+                '.full-start__buttons', 
+                '.full-start__actions', 
+                '.movie-full__buttons',
+                '.buttons__list'
+            ];
             
-            // Якщо знайшли контейнер і там ще немає нашої кнопки
-            if (container.length > 0 && container.find('.premium-btn').length === 0) {
-                console.log('Premium Plugin: Container found, adding button...');
-                
-                var btn = $('<div class="full-start__button selector premium-btn" style="background: #ffd700 !important; color: #000 !important; padding: 10px 20px; border-radius: 8px; margin: 10px 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.2s;">' +
-                                '<span style="font-weight: bold; font-size: 16px;">⭐ PREMIUM</span>' +
-                            '</div>');
+            selectors.forEach(function(sel) {
+                var container = $(sel);
+                if (container.length > 0 && container.find('.premium-btn').length === 0) {
+                    console.log('Found container:', sel);
+                    var btn = $('<div class="premium-btn selector" style="background: gold; color: black; padding: 10px; margin: 5px; border-radius: 5px; cursor: pointer; font-weight: bold; text-align: center;">⭐ PREMIUM</div>');
+                    
+                    btn.on('click', function() {
+                        alert('Premium працює!');
+                    });
 
-                btn.on('click hover:enter', function() {
-                    openPremiumMenu();
-                });
-
-                container.append(btn);
-                
-                // Оновлюємо навігацію пульта
-                if(window.Lampa && Lampa.Controller) Lampa.Controller.toggle('full');
-            }
-        }, 500);
+                    container.append(btn);
+                    if(window.Lampa && Lampa.Controller) Lampa.Controller.toggle('full');
+                }
+            });
+        }, 1000);
     }
 
-    function openPremiumMenu() {
-        Lampa.Select.show({
-            title: 'Premium Вибір',
-            items: [
-                { title: '🇺🇦 Rezka (UKR)', quality: '1080p' },
-                { title: '🎥 HDRezka (4K)', quality: '2160p' }
-            ],
-            onSelect: function(item) {
-                Lampa.Noty.show('Шукаю: ' + item.title);
-            },
-            onBack: function() {
-                Lampa.Controller.toggle('full');
-            }
-        });
-    }
-
-    // Запускаємо негайно
-    if (window.app_ready) {
-        initPremium();
-    } else {
-        $(document).on('app:ready', initPremium);
-        // Резервний запуск через 3 секунди
-        setTimeout(initPremium, 3000);
+    // Запуск без зайвих перевірок
+    try {
+        startDiagnostic();
+    } catch (e) {
+        console.error('Plugin error:', e);
     }
 })();
