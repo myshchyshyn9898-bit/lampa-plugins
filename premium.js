@@ -1,76 +1,84 @@
 (function () {
     'use strict';
 
-    function init() {
-        // 1. Реєструємо компонент (як у твоєму прикладі)
-        Lampa.Component.add('premium_search', function (object) {
-            var network = new Lampa.Reguest();
-            var scroll = new Lampa.Scroll({mask: true, over: true});
-            var files = new Lampa.Explorer(object);
+    function Premium(object) {
+        var network = new Lampa.Reguest();
+        var scroll  = new Lampa.Scroll({mask: true, over: true});
+        var files   = new Lampa.Explorer(object);
+        
+        this.create = function () {
+            var _this = this;
+            // Створюємо заголовок меню (як у Modss або Showy)
+            var html = $('<div class="premium-list"></div>');
+            
+            // Наш золотий банер вибору
+            var banner = $(`
+                <div class="selector" style="padding: 20px; background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; border-radius: 10px; margin: 10px; text-align: center; font-weight: bold;">
+                    💎 ПРЕМІУМ ВИБІР ЯКОСТІ (UKR/4K)
+                </div>
+            `);
 
-            this.create = function () {
-                var _this = this;
-                // Тут логіка відображення списку озвучок/якості
-                var html = $('<div><div class="simple-button selector" style="width:100%; text-align:center; padding: 20px; background: gold; color: black; border-radius: 10px;">Шукаю найкращу якість для: ' + object.movie.title + '</div></div>');
-                
-                html.find('.selector').on('hover:enter', function(){
-                    Lampa.Noty.show('Пошук на Rezka активовано...');
-                });
+            banner.on('hover:enter', function(){
+                Lampa.Noty.show('Шукаю найкращі варіанти на Rezka...');
+            });
 
-                return html;
-            };
+            html.append(banner);
+            scroll.append(html);
 
-            this.render = function () {
-                return scroll.render();
-            };
+            return scroll.render();
+        };
 
-            this.destroy = function () {
-                network.clear();
-                scroll.destroy();
-            };
-        });
+        this.render = function () {
+            return scroll.render();
+        };
 
-        // 2. Додаємо кнопку в головне меню
-        Lampa.Menu.add({
-            id: 'premium_menu',
-            title: 'PREMIUM',
-            icon: '<svg height="24" viewBox="0 0 24 24" width="24" fill="gold"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>',
-            onSelect: function () {
-                Lampa.Noty.show('Premium Plugin Ready');
-            }
-        });
+        this.destroy = function () {
+            network.clear();
+            scroll.destroy();
+        };
+    }
 
-        // 3. Автоматичне додавання кнопки в картку фільму (твоя ідея + надійний селектор)
+    // Головна логіка ініціалізації в стилі And7ey
+    function startPlugin() {
+        window.premium_online = true;
+
+        // Реєструємо компонент
+        Lampa.Component.add('premium_online', Premium);
+
+        // Додаємо кнопку в картку фільму (метод And7ey)
         Lampa.Listener.follow('full', function (e) {
             if (e.type == 'complite') {
-                var container = e.object.container.find('.full-start__buttons');
-                if (container.length && !container.find('.premium-btn').length) {
-                    var btn = $('<div class="full-start__button selector premium-btn" style="background: linear-gradient(135deg, #ffd700, #ff8c00) !important; color: #000 !important; font-weight: bold !important; border-radius: 8px !important; display: flex; align-items: center; padding: 10px 15px; margin: 5px;">⭐ PREMIUM</div>');
+                var btn = $(`
+                    <div class="full-start__button selector premium-button" style="background: #ffd700 !important; color: #000 !important; font-weight: bold !important; border-radius: 8px !important;">
+                        <span>Premium</span>
+                    </div>
+                `);
 
-                    btn.on('hover:enter', function () {
-                        // Відкриваємо наш зареєстрований компонент
-                        Lampa.Activity.push({
-                            url: '',
-                            title: 'Premium Пошук',
-                            component: 'premium_search',
-                            movie: e.data,
-                            page: 1
-                        });
+                btn.on('hover:enter', function () {
+                    Lampa.Activity.push({
+                        url: '',
+                        title: 'Premium',
+                        component: 'premium_online',
+                        movie: e.data,
+                        page: 1
                     });
+                });
 
-                    container.prepend(btn);
-                    Lampa.Controller.toggle('full');
-                }
+                // Шукаємо кнопку трейлера або торрентів і ставимо нашу ПЕРЕД ними
+                var target = e.object.container.find('.view--torrent, .view--trailer').first();
+                if (target.length) target.before(btn);
+                else e.object.container.find('.full-start__buttons').append(btn);
+                
+                Lampa.Controller.toggle('full');
             }
         });
     }
 
-    // Правильна перевірка завантаження
-    if (window.Lampa) {
-        init();
-    } else {
+    // Запуск через перевірку готовності додатка
+    if (window.app_ready) startPlugin();
+    else {
         Lampa.Listener.follow('app', function (e) {
-            if (e.type == 'ready') init();
+            if (e.type == 'ready') startPlugin();
         });
     }
 })();
