@@ -1,12 +1,23 @@
 (function () {
     'use strict';
 
-    function PremiumPlugin() {
-        var _this = this;
+    // Створюємо плагін як об'єкт
+    var PremiumPlugin = {
+        name: 'Premium Online',
+        version: '1.1.0',
+        description: 'Найкраща якість та українська озвучка',
+        
+        // Функція ініціалізації
+        init: function () {
+            var _this = this;
 
-        this.init = function () {
-            // Додаємо стилі в стилі Showy/Modss
-            $('body').append('<style>.premium-gold-btn{background:linear-gradient(135deg,#ffd700,#ff8c00)!important;color:#000!important;font-weight:700!important;border-radius:5px!important;padding:10px 15px!important;margin:5px!important;display:flex!important;align-items:center}.premium-gold-btn.focus{transform:scale(1.05);background:#fff!important;box-shadow:0 0 15px gold}</style>');
+            // Додаємо стилі один раз
+            if (!$('#premium-styles').length) {
+                $('body').append('<style id="premium-styles">' +
+                    '.premium-gold-btn { background: linear-gradient(135deg, #ffd700, #ff8c00) !important; color: #000 !important; font-weight: bold !important; border-radius: 8px !important; display: inline-flex !important; align-items: center; justify-content: center; padding: 12px 24px !important; margin: 10px 5px !important; cursor: pointer; border: none !important; }' +
+                    '.premium-gold-btn.focus { transform: scale(1.1); background: #fff !important; box-shadow: 0 0 20px gold !important; }' +
+                    '</style>');
+            }
 
             // Слухаємо відкриття картки фільму
             Lampa.Listener.follow('full', function (e) {
@@ -14,52 +25,59 @@
                     _this.addButton(e);
                 }
             });
-        };
+        },
 
-        this.addButton = function (e) {
+        // Додавання кнопки
+        addButton: function (e) {
+            var _this = this;
+            // Шукаємо блок кнопок. У нових версіях MX це .full-start__buttons
             var container = e.object.container.find('.full-start__buttons');
             
             if (container.length && !container.find('.premium-gold-btn').length) {
                 var btn = $('<div class="full-start__button selector premium-gold-btn">⭐ PREMIUM</div>');
 
-                btn.on('hover:enter', function () {
+                btn.on('hover:enter click', function () {
                     _this.openMenu(e.data);
                 });
 
-                // Вставляємо перед кнопкою трейлера або торрентів
-                var target = container.find('.view--torrent, .view--trailer').first();
-                if (target.length) target.before(btn);
-                else container.append(btn);
-
+                // Вставляємо перед кнопкою "Дивитися" (Смотреть)
+                container.prepend(btn);
+                
+                // Примусово оновлюємо контролер
                 Lampa.Controller.toggle('full');
             }
-        };
+        },
 
-        this.openMenu = function (data) {
+        // Меню вибору
+        openMenu: function (data) {
             Lampa.Select.show({
-                title: 'Premium Вибір',
+                title: 'Premium Якість: ' + (data.movie.title || data.movie.name),
                 items: [
-                    {title: '🇺🇦 Українська озвучка (4K)', quality: '4K', source: 'rezka'},
-                    {title: '🇺🇦 Українська озвучка (HD)', quality: '1080p', source: 'ashdi'},
-                    {title: '🌍 Original (Найкраща якість)', quality: 'Max', source: 'alloha'}
+                    { title: '🇺🇦 Українська (Rezka 4K)', quality: '4K', source: 'rezka' },
+                    { title: '🇺🇦 Українська (Ashdi 1080p)', quality: '1080p', source: 'ashdi' },
+                    { title: '🌍 Original (Найкращий бітрейт)', quality: 'Max', source: 'alloha' }
                 ],
                 onSelect: function (item) {
-                    Lampa.Noty.show('Пошук ' + item.title + ' для ' + (data.movie.title || data.movie.name));
+                    Lampa.Noty.show('Пошук ' + item.title + ' активується...');
                 },
                 onBack: function () {
                     Lampa.Controller.toggle('full');
                 }
             });
-        };
-    }
+        }
+    };
 
-    // Запуск через стандартний механізм Lampa
-    if (window.app_ready) {
-        new PremiumPlugin().init();
-    } else {
-        Lampa.Listener.follow('app', function (e) {
-            if (e.type == 'ready') new PremiumPlugin().init();
-        });
+    // Запуск через перевірку Lampa
+    try {
+        if (window.Lampa) {
+            PremiumPlugin.init();
+        } else {
+            Lampa.Listener.follow('app', function (e) {
+                if (e.type == 'ready') PremiumPlugin.init();
+            });
+        }
+    } catch (err) {
+        console.error('Premium Plugin Error:', err);
     }
 
 })();
