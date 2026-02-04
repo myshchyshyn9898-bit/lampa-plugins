@@ -2,85 +2,85 @@
     'use strict';
 
     function PremiumPlugin() {
-        // 1. Повідомлення про життя (з'явиться знизу зліва)
-        Lampa.Utils.putMessage('💎 Premium: Ready');
+        // 1. Реєструємо плагін (як це роблять усі робочі моди)
+        Lampa.Manifest.plugins = Lampa.Manifest.plugins || {};
+        Lampa.Manifest.plugins['premium_simple'] = {
+            type: 'video',
+            version: '1.0.1',
+            name: 'Premium UI',
+            description: 'Кнопка фільтрації 4K/Ukr/Rus'
+        };
 
-        // 2. Основна логіка
-        function addBtn(e) {
-            // Шукаємо панель кнопок (у Skaz вона може бути в різних місцях)
-            var buttons = $(e.target).find('.full-start__buttons');
+        // 2. Функція пошуку та фільтрації
+        var startSearch = function(movie) {
+            var parser_url = Lampa.Storage.get('parser_website_url') || 'http://176.9.117.135/api/v1';
+            if (parser_url.indexOf('/api/v1') === -1) parser_url = parser_url.replace(/\/$/, "") + '/api/v1';
+
+            Lampa.Loading.start();
             
-            if (buttons.length === 0) buttons = $(e.target).find('.full-tools__buttons');
-            if (buttons.length === 0) buttons = $(e.target).find('.view--torrent').parent();
+            Lampa.Network.silent(parser_url + '/search?query=' + encodeURIComponent(movie.title), function(json) {
+                Lampa.Loading.stop();
+                if (json && json.length) {
+                    var html = $('<div><div style="padding: 20px;" class="premium-list"></div></div>');
+                    
+                    json.forEach(function(item) {
+                        var t = item.title.toLowerCase();
+                        // Лишаємо тільки те, що ти просив: 4K або Ukr або Rus
+                        if (t.indexOf('2160') == -1 && t.indexOf('4k') == -1 && t.indexOf('ukr') == -1 && t.indexOf('ua') == -1 && t.indexOf('rus') == -1 && t.indexOf('ru') == -1) return;
 
-            // Якщо кнопку вже додали - виходимо
-            if (buttons.find('.premium-super-btn').length > 0) return;
+                        var card = $('<div class="selector" style="background: rgba(255,255,255,0.07); margin-bottom: 8px; padding: 12px; border-radius: 6px;">' +
+                            '<div style="font-size: 1.1em; font-weight: bold;">' + item.title + '</div>' +
+                            '<div style="font-size: 0.8em; color: #aaa;">' + (item.size || '') + '</div>' +
+                        '</div>');
 
-            // Створюємо кнопку (Використовуємо стандартний клас Лампи)
-            var btn = $('<div class="premium-super-btn button selector button--shape-rounded button--height-large" style="background: #ffd700; color: #000; font-weight: bold;">💎 Premium</div>');
-
-            // Дія при натисканні
-            btn.on('hover:enter', function () {
-                var search = Lampa.Activity.active().card.title;
-                var url = 'http://176.9.117.135/api/v1/search?query=' + encodeURIComponent(search);
-                
-                Lampa.Loading.start();
-                
-                Lampa.Network.silent(url, function (json) {
-                    Lampa.Loading.stop();
-                    if (json && json.length) {
-                        // Фільтруємо і показуємо (спрощено)
-                        var html = $('<div><div class="premium-list" style="padding:15px;"></div></div>');
-                        json.forEach(function(item) {
-                            var title = item.title;
-                            // Простий фільтр
-                            if(title.toLowerCase().indexOf('ukr') === -1 && title.toLowerCase().indexOf('rus') === -1 && title.indexOf('2160') === -1) return;
-                            
-                            var b = $('<div class="selector" style="background:rgba(255,255,255,0.1); margin-bottom:5px; padding:10px; border-radius:5px;">'+title+'</div>');
-                            b.on('hover:enter', function() {
-                                Lampa.Player.play(item);
-                                Lampa.Player.playlist([item]);
-                            });
-                            html.find('.premium-list').append(b);
+                        card.on('hover:enter', function() {
+                            Lampa.Modal.close();
+                            Lampa.Player.play(item);
+                            Lampa.Player.playlist([item]);
                         });
-                        
-                        Lampa.Modal.open({
-                            title: 'Premium Search',
-                            html: html,
-                            size: 'medium',
-                            select: html.find('.selector').first()
-                        });
-                    } else {
-                        Lampa.Noty.show('Empty');
-                    }
-                }, function () {
-                    Lampa.Loading.stop();
-                    Lampa.Noty.show('Error');
-                });
+
+                        html.find('.premium-list').append(card);
+                    });
+
+                    Lampa.Modal.open({
+                        title: 'Premium: ' + movie.title,
+                        html: html,
+                        size: 'medium',
+                        select: html.find('.selector').first()
+                    });
+                } else {
+                    Lampa.Noty.show('Нічого не знайдено');
+                }
+            }, function() {
+                Lampa.Loading.stop();
+                Lampa.Noty.show('Помилка парсера');
             });
+        };
 
-            buttons.prepend(btn);
-        }
-
-        // 3. Підписка на події (Як у Showy)
+        // 3. Додавання кнопки (Чекаємо на відкриття картки фільму)
         Lampa.Listener.follow('full', function (e) {
             if (e.type == 'complite') {
-                addBtn(e);
+                var container = e.object.activity.render().find('.full-start__buttons');
+                
+                // Якщо не знайшли стандартний контейнер, шукаємо будь-який з кнопками
+                if (container.length == 0) container = e.object.activity.render().find('.button.selector').parent();
+
+                // Якщо кнопки Premium ще немає — додаємо
+                if (container.length > 0 && container.find('.premium-btn').length == 0) {
+                    var btn = $('<div class="button selector premium-btn" style="background: #d4af37; color: #000; font-weight: bold; margin-bottom: 10px;">💎 Premium</div>');
+                    
+                    btn.on('hover:enter', function() {
+                        startSearch(e.data.movie);
+                    });
+
+                    container.prepend(btn);
+                }
             }
         });
     }
 
-    // 4. ЗАВАНТАЖУВАЧ (SHOWY STYLE)
-    // Чекаємо, поки Лампа завантажиться, навіть якщо це займе час
-    if (!window.Lampa) {
-        var timer = setInterval(function () {
-            if (window.Lampa) {
-                clearInterval(timer);
-                PremiumPlugin();
-            }
-        }, 200);
-    } else {
+    // Запуск плагіна
+    if (window.Lampa) {
         PremiumPlugin();
     }
-
 })();
