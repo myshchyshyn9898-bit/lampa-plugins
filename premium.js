@@ -1,69 +1,63 @@
 (function () {
     'use strict';
 
-    function PremiumComponent(object) {
-        this.create = function () {
-            this.start();
-        };
+    function initPremium() {
+        // 1. ПЕРЕВІРКА: Якщо цей текст з'явиться вгорі - значить JS виконується!
+        var testDiv = document.createElement('div');
+        testDiv.innerHTML = 'PREMIUM LOADED';
+        testDiv.style = 'position:fixed;top:0;right:0;background:red;color:white;z-index:9999;padding:5px;font-size:10px;';
+        document.body.appendChild(testDiv);
+        setTimeout(function(){ if(testDiv) testDiv.remove(); }, 5000);
 
-        this.start = function () {
-            Lampa.Noty.show('Premium активовано');
-            // Тут буде логіка пошуку, коли компонент відкриється
-        };
-
-        this.render = function () {
-            return $('<div>Premium Component</div>');
-        };
-
-        this.destroy = function () {};
-    }
-
-    function startPlugin() {
-        // Реєструємо компонент
-        Lampa.Component.add('premium_plugin', PremiumComponent);
-
-        // Додаємо кнопку в маніфест (офіційний спосіб Lampa)
-        Lampa.Manifest.plugins = {
-            name: 'Premium Online',
-            version: '1.0.0',
-            description: 'Найкраща якість та українська озвучка',
-            component: 'premium_plugin'
-        };
-
-        // Додаємо пункт у головне меню
-        Lampa.Menu.add({
-            id: 'premium_menu',
-            title: 'PREMIUM',
-            icon: '<svg height="24" viewBox="0 0 24 24" width="24" fill="gold"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>',
-            onSelect: function () {
-                Lampa.Noty.show('Premium працює!');
-            }
-        });
-
-        // Спроба "вбити" кнопку в картку через перевірку DOM
-        var injectInterval = setInterval(function () {
-            var container = $('.full-start__buttons');
-            if (container.length > 0 && !container.find('.premium-btn-gold').length) {
-                var btn = $('<div class="full-start__button selector premium-btn-gold" style="background: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%) !important; color: #000 !important; padding: 10px 20px; border-radius: 8px; margin: 10px 5px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center;">⭐ PREMIUM</div>');
-                
-                btn.on('click hover:enter', function () {
-                    Lampa.Noty.show('Шукаю найкращу якість...');
-                    // Тут виклик меню якості
+        try {
+            // 2. Додаємо в меню через офіційний метод
+            if (window.Lampa && Lampa.Menu) {
+                Lampa.Menu.add({
+                    id: 'premium_plugin',
+                    title: 'PREMIUM',
+                    icon: '<svg height="24" viewBox="0 0 24 24" width="24" fill="gold"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>',
+                    onSelect: function () {
+                        Lampa.Noty.show('Premium працює!');
+                    }
                 });
-
-                container.prepend(btn);
-                if (window.Lampa && Lampa.Controller) Lampa.Controller.toggle('full');
             }
-        }, 1000);
+
+            // 3. Слідкуємо за кнопками в картці (чистий JS + jQuery для страховки)
+            setInterval(function() {
+                var containers = document.querySelectorAll('.full-start__buttons, .movie-full__buttons');
+                containers.forEach(function(container) {
+                    if (!container.querySelector('.premium-btn-gold')) {
+                        var btn = document.createElement('div');
+                        btn.className = 'full-start__button selector premium-btn-gold';
+                        btn.innerHTML = '⭐ PREMIUM';
+                        btn.style = 'background:linear-gradient(135deg, #ffd700, #ff8c00)!important;color:black!important;padding:10px 15px;border-radius:8px;margin:5px;font-weight:bold;cursor:pointer;display:flex;align-items:center;';
+                        
+                        btn.onclick = function() {
+                            Lampa.Noty.show('Шукаю найкращу якість...');
+                        };
+                        
+                        container.insertBefore(btn, container.firstChild);
+                        if(window.Lampa && Lampa.Controller) Lampa.Controller.toggle('full');
+                    }
+                });
+            }, 1000);
+
+        } catch (e) {
+            console.error('Premium Error:', e);
+        }
     }
 
-    // Запуск точно як у Showy
-    if (window.app_ready) {
-        startPlugin();
-    } else {
-        Lampa.Listener.follow('app', function (e) {
-            if (e.type == 'ready') startPlugin();
-        });
+    // Спроба запуску через всі можливі дірки
+    if (window.app_ready) initPremium();
+    else {
+        // Слухаємо ініціалізацію Lampa
+        if (window.Lampa) {
+            Lampa.Listener.follow('app', function (e) {
+                if (e.type == 'ready') initPremium();
+            });
+        }
+        // Резервний запуск через 3 та 6 секунд
+        setTimeout(initPremium, 3000);
+        setTimeout(initPremium, 6000);
     }
-
 })();
