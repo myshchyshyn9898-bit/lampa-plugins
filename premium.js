@@ -1,90 +1,161 @@
 (function () {
     'use strict';
 
-    // Повідомлення на екран відразу при завантаженні
-    if(window.Lampa) Lampa.Noty.show('🚧 Debug Mode: Active');
+    // Повідомлення при завантаженні (як у нормальних плагінів)
+    if (window.Lampa) {
+        Lampa.Utils.putMessage('✅ Premium Plugin підключено');
+    }
 
-    function PremiumDebug() {
-        
-        // --- 1. Логіка (Та сама) ---
-        function filterContent(items) {
-            var result = { '4k': [], '1080p': [], '720p': [] };
+    function startPlugin() {
+        var _this = this;
+
+        // Логіка фільтрації (спрощена і надійна)
+        function getBestTorrents(items) {
+            var result = [];
             if (!items || !items.length) return result;
+
             items.forEach(function(item) {
-                if(!item || !item.title) return;
+                if (!item || !item.title) return;
                 var title = String(item.title).toLowerCase();
-                var size = item.size || '';
-                var languages = [];
-                if (title.indexOf('ukr') !== -1 || title.indexOf('ua') !== -1 || title.indexOf('укр') !== -1) languages.push('🇺🇦 UKR');
-                if (title.indexOf('rus') !== -1 || title.indexOf('ru') !== -1 || title.indexOf('рус') !== -1) languages.push('🇷🇺 RUS');
-                if (languages.length === 0) languages.push('🇬🇧/Other');
-                var label = languages.join(' + ');
-                var btnData = { title: label, sub: size, file: item };
-                if (title.indexOf('2160') !== -1 || title.indexOf('4k') !== -1) result['4k'].push(btnData);
-                else if (title.indexOf('1080') !== -1 || title.indexOf('fhd') !== -1) result['1080p'].push(btnData);
-                else result['720p'].push(btnData);
+                
+                // Шукаємо наші мови
+                var isUkr = title.indexOf('ukr') !== -1 || title.indexOf('ua') !== -1 || title.indexOf('укр') !== -1;
+                var isRus = title.indexOf('rus') !== -1 || title.indexOf('ru') !== -1 || title.indexOf('рус') !== -1;
+                
+                // Шукаємо високу якість
+                var is4K = title.indexOf('2160') !== -1 || title.indexOf('4k') !== -1;
+                var is1080 = title.indexOf('1080') !== -1;
+
+                var label = 'Інше';
+                var color = 'white';
+
+                if (isUkr) label = '🇺🇦 UKR';
+                else if (isRus) label = '🇷🇺 RUS';
+
+                if (is4K) {
+                    label += ' [4K]';
+                    color = '#FFD700'; // Золотий
+                } else if (is1080) {
+                    label += ' [1080p]';
+                    color = '#ADFF2F'; // Салатовий
+                }
+
+                // Додаємо в список
+                result.push({
+                    title: label,
+                    sub: (item.size || '') + ' • ' + item.title,
+                    quality_score: (is4K ? 10 : 0) + (is1080 ? 5 : 0) + (isUkr ? 20 : 0),
+                    file: item,
+                    color: color
+                });
             });
+
+            // Сортуємо: спочатку Укр, потім 4К
+            result.sort(function(a, b) {
+                return b.quality_score - a.quality_score;
+            });
+
             return result;
         }
 
-        function showPremiumMenu(movie, data) {
-            var html = $('<div><div class="premium-ui" style="padding: 20px;"><div style="font-size: 1.4em; color: #ffd700; font-weight: bold; margin-bottom: 20px;">' + movie.title + '</div><div class="premium-body"></div></div></div>');
-            function addRow(title, color, items) {
-                if (items.length === 0) return;
-                items.sort(function(a, b) { var aUkr = a.title.indexOf('UKR') !== -1; return aUkr ? -1 : 1; });
-                var row = $('<div style="margin-bottom: 20px;"><div style="color: ' + color + '; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid ' + color + '40;">' + title + '</div><div class="scroll-row" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px;"></div></div>');
-                items.slice(0, 15).forEach(function(item) {
-                    var btn = $('<div class="selector" style="min-width: 130px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; cursor: pointer;"><div style="font-size: 0.85em; font-weight: bold; color: #fff;">' + item.title + '</div><div style="font-size: 0.7em; color: #aaa;">' + item.sub + '</div></div>');
-                    btn.on('hover:enter', function() { Lampa.Modal.close(); Lampa.Player.play(item.file); Lampa.Player.playlist([item.file]); });
-                    row.find('.scroll-row').append(btn);
-                });
-                html.find('.premium-body').append(row);
-            }
-            addRow('🌟 4K Ultra HD', '#e74c3c', data['4k']);
-            addRow('📺 1080p Full HD', '#27ae60', data['1080p']);
-            addRow('📱 720p / Інше', '#3498db', data['720p']);
-            if (html.find('.selector').length === 0) return Lampa.Noty.show('Список пустий');
-            Lampa.Modal.open({ title: '', html: html, size: 'medium', select: html.find('.selector').first(), mask: true });
-        }
-
-        // --- 2. ЯДЕРНА ВСТАВКА (FLOATING BUTTON) ---
-        function addFloatingButton() {
-            // Перевіряємо, чи ми у фільмі
-            var active = Lampa.Activity.active();
-            if (!active || !active.component || active.component !== 'full') {
-                // Якщо ми не у фільмі - видаляємо кнопку
-                $('.premium-float').remove();
-                return;
-            }
+        // Відкриття меню
+        function showMenu(movie, items) {
+            var html = $('<div><div class="premium-list" style="padding: 10px;"></div></div>');
             
-            // Якщо кнопка вже є - виходимо
-            if ($('.premium-float').length > 0) return;
+            items.slice(0, 20).forEach(function(item) {
+                var btn = $('<div class="selector" style="background: rgba(255,255,255,0.05); margin-bottom: 10px; padding: 15px; border-radius: 8px; border-left: 5px solid ' + item.color + ';">' +
+                    '<div style="font-size: 1.1em; font-weight: bold; color: white;">' + item.title + '</div>' +
+                    '<div style="font-size: 0.8em; color: #aaa; margin-top: 5px;">' + item.sub + '</div>' +
+                    '</div>');
 
-            // Створюємо кнопку, яка висить ПОВЕРХ усього
-            var btn = $('<div class="premium-float selector" style="position: fixed; z-index: 9999; top: 50px; left: 50px; background: red; color: white; padding: 20px; font-weight: bold; border-radius: 10px; border: 3px solid white; box-shadow: 0 0 20px black;">TEST PREMIUM</div>');
+                btn.on('hover:enter', function() {
+                    Lampa.Modal.close();
+                    Lampa.Player.play(item.file);
+                    Lampa.Player.playlist([item.file]);
+                });
 
-            btn.on('hover:enter', function () {
-                var parser_url = Lampa.Storage.get('parser_website_url'); 
-                if (!parser_url) parser_url = 'http://176.9.117.135/api/v1';
-                Lampa.Loading.start();
-                var query = encodeURIComponent(active.card.title);
-                if(parser_url.indexOf('api/v1') === -1) parser_url = parser_url.replace(/\/$/, "") + '/api/v1';
-                
-                Lampa.Network.silent(parser_url + '/search?query=' + query, function(json) {
-                    Lampa.Loading.stop();
-                    if (json && json.length) showPremiumMenu(active.card, filterContent(json));
-                    else Lampa.Noty.show('Пусто');
-                }, function() { Lampa.Loading.stop(); Lampa.Noty.show('Помилка мережі'); });
+                html.find('.premium-list').append(btn);
             });
 
-            // Вставляємо прямо в тіло сторінки (ігноруємо скіни)
-            $('body').append(btn);
-            Lampa.Noty.show('Кнопка створена (Floating)');
+            Lampa.Modal.open({
+                title: 'Знайдено ' + items.length + ' варіантів',
+                html: html,
+                size: 'medium',
+                select: html.find('.selector').first(),
+                mask: true
+            });
         }
 
-        // Перевіряємо кожну секунду
-        setInterval(addFloatingButton, 1000);
+        // ГОЛОВНА ФУНКЦІЯ: Вставка кнопки поруч із Showy
+        function appendButton(event) {
+            if (event.type !== 'complite') return;
+
+            var render = event.object.activity.render();
+            
+            // 1. Шукаємо кнопку Showy (вона у тебе точно є)
+            var target = render.find('.view--showy');
+            
+            // 2. Якщо Showy нема, шукаємо MODS
+            if (target.length === 0) target = render.find('.view--mods');
+            
+            // 3. Якщо і її нема, шукаємо просто панель кнопок
+            if (target.length === 0) target = render.find('.full-start__buttons');
+
+            // Якщо ми вже додали кнопку - виходимо
+            if (render.find('.view--premium-final').length > 0) return;
+
+            // Створюємо кнопку
+            var btn = $('<div class="view--premium-final button selector button--shape-rounded button--height-large" style="background: linear-gradient(90deg, #d53369 0%, #daae51 100%); color: white; font-weight: bold;">💎 Premium</div>');
+
+            btn.on('hover:enter', function() {
+                var parser_url = Lampa.Storage.get('parser_website_url');
+                if (!parser_url) parser_url = 'http://176.9.117.135/api/v1'; // TorLook default
+                
+                Lampa.Loading.start();
+                var query = encodeURIComponent(event.data.movie.title);
+                
+                // Фікс URL
+                if (parser_url.indexOf('/api/v1') === -1) {
+                     parser_url = parser_url.replace(/\/$/, "") + '/api/v1';
+                }
+
+                var url = parser_url + '/search?query=' + query;
+                
+                Lampa.Network.silent(url, function(json) {
+                    Lampa.Loading.stop();
+                    if (json && json.length) {
+                        var best = getBestTorrents(json);
+                        showMenu(event.data.movie, best);
+                    } else {
+                        Lampa.Noty.show('Нічого не знайдено');
+                    }
+                }, function() {
+                    Lampa.Loading.stop();
+                    Lampa.Noty.show('Помилка парсера');
+                });
+            });
+
+            // Вставляємо ПІСЛЯ Showy
+            if (target.hasClass('view--showy') || target.hasClass('view--mods')) {
+                target.after(btn);
+            } else {
+                target.prepend(btn); // Якщо не знайшли сусідів, ставимо першою
+            }
+        }
+
+        // Підписуємось на відкриття фільму
+        Lampa.Listener.follow('full', appendButton);
     }
 
-    if (window.Lampa) PremiumDebug();
+    if (window.Lampa) {
+        startPlugin();
+    } else {
+        // Якщо Lampa ще не готова, чекаємо
+        var timer = setInterval(function() {
+            if (window.Lampa) {
+                clearInterval(timer);
+                startPlugin();
+            }
+        }, 200);
+    }
 })();
