@@ -1,20 +1,15 @@
 (function () {
-    'use strict';
+    try {
+        window.plugin = true;
 
-    // ОБОВʼЯЗКОВО для Lampa
-    if (!window.plugin) window.plugin = true;
+        console.log('[Premium] loaded safely');
 
-    function start() {
-        console.log('[Premium] plugin loaded');
-
-        if (window.Lampa && Lampa.Noty) {
-            Lampa.Noty.show('Premium plugin loaded');
+        if (window.Lampa && Lampa.Listener) {
+            Lampa.Listener.follow('app', function () {
+                console.log('[Premium] app ready');
+            });
         }
-    }
-
-    if (window.Lampa && Lampa.Listener) {
-        Lampa.Listener.follow('app', start);
-    } else {
-        document.addEventListener('lampa_app_ready', start);
+    } catch (e) {
+        console.error('[Premium] fatal error', e);
     }
 })();
