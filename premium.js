@@ -1,11 +1,13 @@
 (function () {
     'use strict';
 
+    // ОБОВʼЯЗКОВО для Lampa
+    if (!window.plugin) window.plugin = true;
+
     function start() {
         console.log('[Premium] plugin loaded');
 
-        // повідомлення для перевірки
-        if (Lampa && Lampa.Noty) {
+        if (window.Lampa && Lampa.Noty) {
             Lampa.Noty.show('Premium plugin loaded');
         }
     }
@@ -15,5 +17,4 @@
     } else {
         document.addEventListener('lampa_app_ready', start);
     }
-
 })();
