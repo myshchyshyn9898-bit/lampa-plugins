@@ -3,5 +3,5 @@
   "version": "1.2.0",
   "description": "Українська озвучка та 4K",
   "type": "plugin",
-  "file": "https://cdn.jsdelivr.net/gh/myshchyshyn9898-bit/lampa-plugins@main/premium.js"
+  "file": "premium.js"
 }
