@@ -1,7 +1,7 @@
 {
-  "name": "Premium Online",
-  "version": "1.5.0",
-  "description": "Тестовий плагін",
+  "name": "PREMIUM FIX",
+  "version": "3.0.0",
+  "description": "Фінальна спроба запуску",
   "type": "plugin",
-  "file": "premium.js"
+  "plugin": "premium.js"
 }
