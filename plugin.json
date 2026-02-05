@@ -1,7 +1,7 @@
 {
   "name": "Premium Online",
-  "version": "1.4.0",
-  "description": "Українська озвучка та 4K",
+  "version": "1.5.0",
+  "description": "Тестовий плагін",
   "type": "plugin",
   "file": "premium.js"
 }
