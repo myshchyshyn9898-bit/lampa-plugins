@@ -1,36 +1,27 @@
 (function () {
-    'use strict';
 
-    // 1. ДІАГНОСТИКА: Блимання фоном (якщо це спрацює - JS живий)
-    document.body.style.backgroundColor = '#1a1a1a';
-    setTimeout(function() { document.body.style.backgroundColor = ''; }, 1000);
+    if (typeof Lampa == 'undefined') return;
 
-    function forceInject() {
-        // Шукаємо блок кнопок, як у працюючого MODS's (твій скріншот 4)
-        var footer = document.querySelector('.full-start__buttons');
-        
-        if (footer && !document.querySelector('.premium-btn-final')) {
-            var btn = document.createElement('div');
-            // Використовуємо класи, які Лампа точно знає
-            btn.className = 'full-start__button selector premium-btn-final view--online_modss';
-            btn.style.background = 'gold';
-            btn.style.color = 'black';
-            btn.style.padding = '10px 15px';
-            btn.style.margin = '5px';
-            btn.style.borderRadius = '6px';
-            btn.style.fontWeight = 'bold';
-            btn.innerHTML = '⭐ PREMIUM';
+    var plugin = {
+        name: 'Онлайн хелоу',
+        version: '1.0',
+        description: 'Кнопка онлайн перегляду',
+        author: 'test'
+    };
 
-            btn.onclick = function() {
-                window.Lampa.Noty.show('ПРАЦЮЄ! Дані фільму підтягнуто.');
-            };
+    Lampa.Plugin.add('online_helou', {
+        init: function () {
 
-            footer.insertBefore(btn, footer.firstChild);
-            
-            if (window.Lampa && Lampa.Controller) Lampa.Controller.toggle('full');
-        }
-    }
+            Lampa.Listener.follow('full', function (event) {
 
-    // Перевіряємо екран кожну секунду (для ТВ це найнадійніше)
-    setInterval(forceInject, 1000);
-})();
+                if (event.type !== 'complite') return;
+                if (!event.data || !event.data.movie) return;
+
+                Lampa.Player.addButton({
+                    title: 'Онлайн хелоу',
+                    onClick: function () {
+                        window.open('https://google.com');
+                    }
+                });
+
+            }
