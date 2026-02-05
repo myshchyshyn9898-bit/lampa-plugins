@@ -1,31 +1,19 @@
 (function () {
     'use strict';
 
-    function Premium() {
-        this.init = function () {
-            Lampa.Listener.follow('full', function (e) {
-                if (e.type == 'complite') {
-                    var container = e.object.container.find('.full-start__buttons');
-                    if (container.length && !container.find('.premium-btn').length) {
-                        var btn = $('<div class="full-start__button selector premium-btn" style="background:gold!important;color:#000!important;font-weight:bold!important;border-radius:5px!important"><span>PREMIUM</span></div>');
-                        
-                        btn.on('hover:enter', function () {
-                            Lampa.Noty.show('Premium активовано');
-                        });
+    function start() {
+        console.log('[Premium] plugin loaded');
 
-                        container.prepend(btn);
-                        Lampa.Controller.toggle('full');
-                    }
-                }
-            });
-        };
+        // повідомлення для перевірки
+        if (Lampa && Lampa.Noty) {
+            Lampa.Noty.show('Premium plugin loaded');
+        }
     }
 
-    if (window.app_ready) {
-        new Premium().init();
+    if (window.Lampa && Lampa.Listener) {
+        Lampa.Listener.follow('app', start);
     } else {
-        Lampa.Listener.follow('app', function (e) {
-            if (e.type == 'ready') new Premium().init();
-        });
+        document.addEventListener('lampa_app_ready', start);
     }
+
 })();
