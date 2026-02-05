@@ -1,15 +1,20 @@
 (function () {
-    try {
-        window.plugin = true;
+    'use strict';
 
-        console.log('[Premium] loaded safely');
+    if (!window.Lampa) return;
 
-        if (window.Lampa && Lampa.Listener) {
-            Lampa.Listener.follow('app', function () {
-                console.log('[Premium] app ready');
-            });
+    Lampa.Extensions.add({
+        name: 'premium_online',
+
+        onStart: function () {
+            console.log('[Premium] extension started');
+
+            Lampa.Noty.show('Premium extension loaded');
+        },
+
+        onStop: function () {
+            console.log('[Premium] extension stopped');
         }
-    } catch (e) {
-        console.error('[Premium] fatal error', e);
-    }
+    });
+
 })();
