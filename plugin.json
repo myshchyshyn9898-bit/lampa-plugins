@@ -1,0 +1,9 @@
+{
+  "name": "Premium Online",
+  "version": "1.1.0",
+  "description": "Найкраща якість та українська озвучка (Rezka/Ashdi)",
+  "type": "plugin",
+  "author": "Myshchyshyn",
+  "icon": "https://raw.githubusercontent.com/myshchyshyn9898-bit/lampa-plugins/main/icon.png",
+  "plugin": "https://raw.githubusercontent.com/myshchyshyn9898-bit/lampa-plugins/main/premium.js"
+}
