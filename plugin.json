@@ -1,7 +1,0 @@
-{
-  "name": "PREMIUM FIX",
-  "version": "3.0.0",
-  "description": "Фінальна спроба запуску",
-  "type": "plugin",
-  "plugin": "premium.js"
-}
